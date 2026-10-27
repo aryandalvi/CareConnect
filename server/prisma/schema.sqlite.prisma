@@ -1,0 +1,159 @@
+// Prisma Schema for CareConnect AI - SQLite Local Dev Fallback
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Patient {
+  id               String               @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String               @unique
+  phoneNumber      String               @unique
+  dateOfBirth      String?              // YYYY-MM-DD
+  preferredChannel String               @default("WHATSAPP") // WHATSAPP, SMS, EMAIL
+  consentStatus    String               @default("CONSENTED") // CONSENTED, REVOKED, PENDING
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  appointments     Appointment[]
+  conversations    Conversation[]
+  notifications    Notification[]
+  consents         CommunicationConsent[]
+}
+
+model Doctor {
+  id             String               @id @default(uuid())
+  name           String
+  specialty      String
+  email          String               @unique
+  phone          String?
+  roomNumber     String?
+  bio            String?
+  active         Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  availabilities DoctorAvailability[]
+  appointments   Appointment[]
+}
+
+model DoctorAvailability {
+  id                  String   @id @default(uuid())
+  doctorId            String
+  doctor              Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek           Int      // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+  startTime           String   // HH:mm (e.g. "09:00")
+  endTime             String   // HH:mm (e.g. "17:00")
+  slotDurationMinutes Int      @default(30)
+  active              Boolean  @default(true)
+}
+
+model Appointment {
+  id             String            @id @default(uuid())
+  patientId      String
+  patient        Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId       String
+  doctor         Doctor            @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  specialty      String
+  dateTime       DateTime
+  endTime        DateTime
+  status         String            @default("SCHEDULED") // SCHEDULED, CONFIRMED, RESCHEDULED, CANCELLED, COMPLETED
+  reason         String?
+  notes          String?
+  reminderStatus String            @default("PENDING") // PENDING, SENT, FAILED, DELIVERED, SKIPPED
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  reminders      Reminder[]
+  notifications  Notification[]
+}
+
+model Conversation {
+  id             String       @id @default(uuid())
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  channel        String       @default("WHATSAPP")
+  status         String       @default("ACTIVE")
+  lastMessageAt  DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  messages       Message[]
+}
+
+model Message {
+  id                String       @id @default(uuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType        String       // PATIENT, AGENT, SYSTEM
+  content           String
+  channel           String       @default("WHATSAPP")
+  externalMessageId String?
+  status            String       @default("DELIVERED")
+  metadata          String?
+  createdAt         DateTime     @default(now())
+}
+
+model Notification {
+  id                String             @id @default(uuid())
+  patientId         String
+  patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointmentId     String?
+  appointment       Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  channel           String             // WHATSAPP, SMS, EMAIL
+  type              String             // REMINDER, CONFIRMATION, RESCHEDULE_NOTICE, CANCELLATION_NOTICE, VERIFICATION
+  status            String             @default("PENDING") // PENDING, SENT, DELIVERED, FAILED
+  recipient         String
+  subject           String?
+  content           String
+  externalMessageId String?
+  errorMessage      String?
+  retryCount        Int                @default(0)
+  sentAt            DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Reminder {
+  id            String         @id @default(uuid())
+  appointmentId String
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  scheduledFor  DateTime
+  channel       String         @default("WHATSAPP")
+  status        String         @default("PENDING")
+  sentAt        DateTime?
+  error         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model CommunicationConsent {
+  id          String   @id @default(uuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  channel     String
+  consented   Boolean  @default(true)
+  consentDate DateTime @default(now())
+  source      String   @default("WEB")
+  notes       String?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([patientId, channel])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  entityType  String
+  entityId    String?
+  performedBy String   @default("SYSTEM")
+  details     String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+}

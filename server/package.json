@@ -1,0 +1,38 @@
+{
+  "name": "careconnect-ai-server",
+  "version": "1.0.0",
+  "description": "CareConnect AI Backend Server - Healthcare Agent with AWS CDS & Bedrock",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:sqlite:generate": "prisma generate --schema=prisma/schema.sqlite.prisma",
+    "prisma:sqlite:push": "prisma db push --schema=prisma/schema.sqlite.prisma",
+    "prisma:sqlite:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.758.0",
+    "@aws-sdk/client-pinpoint-sms-voice-v2": "^3.758.0",
+    "@aws-sdk/client-ses": "^3.758.0",
+    "@aws-sdk/client-socialmessaging": "^3.758.0",
+    "@prisma/client": "^5.22.0",
+    "cors": "^2.8.5",
+    "date-fns": "^3.6.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.13.5",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}
